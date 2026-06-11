@@ -75,6 +75,15 @@ void render_boot(void)
     model_load(MDL_ZOMBIE,    "assets/zombie.mdl");
     model_load(MDL_ROCK,      "assets/rock.mdl");
     model_load(MDL_CRATE,     "assets/crate.mdl");
+    model_load(MDL_PALM,       "assets/palm.mdl");
+    model_load(MDL_DEAD_TREE,  "assets/dead_tree.mdl");
+    model_load(MDL_BUSH_BERRY, "assets/bush_berry.mdl");
+    model_load(MDL_STRUCTURE,  "assets/structure.mdl");
+    model_load(MDL_CAMPFIRE,   "assets/campfire.mdl");
+    model_load(MDL_ANIMAL,     "assets/animal.mdl");
+    model_load(MDL_PROJECTILE, "assets/projectile.mdl");
+    model_load(MDL_LOOT,       "assets/loot.mdl");
+    model_load(MDL_WATER,      "assets/water.mdl");
 }
 
 void render_begin(const mat4_t *view, const mat4_t *proj)

@@ -5,7 +5,8 @@ EE_BIN          = bin/zumbi.elf
 EE_OBJS         = src/main.o src/memory.o src/math3d.o src/gs.o src/render.o \
                   src/world.o src/player.o src/zombie.o src/inventory.o \
                   src/network.o src/input.o src/audio.o src/spatial.o \
-                  src/scratchpad.o src/crafting.o
+                  src/scratchpad.o src/crafting.o src/structures.o \
+                  src/mechanics.o
 
 # Microcode VU1 linkado como blob binario no ELF.
 VU1_OBJS        = vu1/transform.o vu1/lighting.o
@@ -38,8 +39,10 @@ vu1/%.o: vu1/%.vsm
 	$(DVP_AS) -o $(@:.o=.vo) $<
 	$(EE_AS) --defsym vsm=1 -o $@ $(@:.o=.vo)
 
+# ISO bootavel. Usa tools/build_iso.sh (mkps2iso se disponivel, senao
+# mkisofs/genisoimage) com SYSTEM.CNF + ZUMBI.ELF na raiz.
 iso: $(EE_BIN)
-	mkisofs -l -o bin/zumbi.iso -V ZUMBI -sysid PLAYSTATION $(EE_BIN)
+	tools/build_iso.sh --no-build
 
 run: $(EE_BIN)
 	$(PCSX2) --elf $(EE_BIN)

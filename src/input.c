@@ -2,15 +2,32 @@
 #include <libpad.h>
 #include <string.h>
 
-input_state_t g_input;
-static char  s_pad_buf[256] __attribute__((aligned(64)));
-static u32   s_prev_buttons;
+input_state_t g_input;                          /* alias do pad 0 */
+input_state_t g_inputs[MAX_LOCAL_PLAYERS];
+
+/* Mapeamento (porta, slot) por indice de jogador local. Com multitap,
+ * uma unica porta expoe varios slots; sem multitap usamos as 2 portas
+ * fisicas do console. */
+static const u8 s_pad_port[MAX_LOCAL_PLAYERS] = { 0, 1, 0, 1 };
+static const u8 s_pad_slot[MAX_LOCAL_PLAYERS] = { 0, 0, 1, 1 };
+
+static char s_pad_buf[MAX_LOCAL_PLAYERS][256] __attribute__((aligned(64)));
+static u32  s_prev_buttons[MAX_LOCAL_PLAYERS];
+static u8   s_pad_ok[MAX_LOCAL_PLAYERS];
 
 void input_boot(void)
 {
     padInit(0);
-    padPortOpen(0, 0, s_pad_buf);
-    padSetMainMode(0, 0, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
+    memset(g_inputs, 0, sizeof g_inputs);
+    for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i) {
+        int port = s_pad_port[i], slot = s_pad_slot[i];
+        if (padPortOpen(port, slot, s_pad_buf[i]) == 1) {
+            padSetMainMode(port, slot, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
+            s_pad_ok[i] = 1;
+        } else {
+            s_pad_ok[i] = 0;
+        }
+    }
 }
 
 /* Mapeia PS2 PAD bits para nossos BTN_*. */
@@ -36,28 +53,48 @@ static u32 map_buttons(u16 ps2)
     return r;
 }
 
-void input_tick(void)
+static void read_pad(int i)
 {
+    input_state_t *in = &g_inputs[i];
+    if (!s_pad_ok[i]) { memset(in, 0, sizeof *in); return; }
+
+    int port = s_pad_port[i], slot = s_pad_slot[i];
     struct padButtonStatus st;
-    int ready = padGetState(0, 0);
+    int ready = padGetState(port, slot);
     if (ready != PAD_STATE_STABLE && ready != PAD_STATE_FINDCTP1) return;
-    if (padRead(0, 0, &st) == 0) return;
+    if (padRead(port, slot, &st) == 0) return;
 
     u32 b = map_buttons(st.btns);
-    g_input.pressed  = b & ~s_prev_buttons;
-    g_input.released = ~b & s_prev_buttons;
-    g_input.buttons  = b;
-    s_prev_buttons   = b;
+    in->pressed  = b & ~s_prev_buttons[i];
+    in->released = ~b & s_prev_buttons[i];
+    in->buttons  = b;
+    s_prev_buttons[i] = b;
 
-    /* sticks: PS2 manda 0..255, centro = 128. Converte para -128..127. */
-    g_input.lstick_x = (s8)((int)st.ljoy_h - 128);
-    g_input.lstick_y = (s8)(128 - (int)st.ljoy_v);
-    g_input.rstick_x = (s8)((int)st.rjoy_h - 128);
-    g_input.rstick_y = (s8)(128 - (int)st.rjoy_v);
+    in->lstick_x = (s8)((int)st.ljoy_h - 128);
+    in->lstick_y = (s8)(128 - (int)st.ljoy_v);
+    in->rstick_x = (s8)((int)st.rjoy_h - 128);
+    in->rstick_y = (s8)(128 - (int)st.rjoy_v);
 
-    /* Dead zone radial. */
-    if (g_input.lstick_x < 24 && g_input.lstick_x > -24) g_input.lstick_x = 0;
-    if (g_input.lstick_y < 24 && g_input.lstick_y > -24) g_input.lstick_y = 0;
-    if (g_input.rstick_x < 16 && g_input.rstick_x > -16) g_input.rstick_x = 0;
-    if (g_input.rstick_y < 16 && g_input.rstick_y > -16) g_input.rstick_y = 0;
+    if (in->lstick_x < 24 && in->lstick_x > -24) in->lstick_x = 0;
+    if (in->lstick_y < 24 && in->lstick_y > -24) in->lstick_y = 0;
+    if (in->rstick_x < 16 && in->rstick_x > -16) in->rstick_x = 0;
+    if (in->rstick_y < 16 && in->rstick_y > -16) in->rstick_y = 0;
+}
+
+void input_tick(void)
+{
+    for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
+        read_pad(i);
+    g_input = g_inputs[0];     /* mantem o alias compativel */
+}
+
+const input_state_t *input_for_pad(u8 pad)
+{
+    if (pad >= MAX_LOCAL_PLAYERS) pad = 0;
+    return &g_inputs[pad];
+}
+
+int input_pad_connected(u8 pad)
+{
+    return (pad < MAX_LOCAL_PLAYERS) && s_pad_ok[pad];
 }

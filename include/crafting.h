@@ -16,7 +16,7 @@ typedef struct {
     recipe_ing_t    output;
     u8              ninputs;
     u8              needs_workbench;
-    u8              craft_time_ms;
+    u16             craft_time_ms;
 } recipe_t;
 
 extern const recipe_t g_recipes[];

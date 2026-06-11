@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Projeto mkps2iso para gerar a ISO/UDF bootavel do Zumbi Multiplayer.
+  Uso:  mkps2iso zumbi.xml      (gera bin/zumbi.iso)
+  Veja docs/BUILD.md para o passo a passo completo.
+
+  A arvore de diretorios abaixo precisa existir na raiz ANTES de gerar:
+    SYSTEM.CNF            (obrigatorio — aponta para o ELF)
+    bin/zumbi.elf         (saida do `make`, copiada como ZUMBI.ELF)
+    assets/              (texturas, modelos, sons)
+-->
+<iso_project image_name="bin/zumbi.iso" volume_name="ZUMBI">
+    <track type="data">
+        <identifiers system="PLAYSTATION2" application="PLAYSTATION2"/>
+        <directory_tree>
+            <file name="SYSTEM.CNF" source="SYSTEM.CNF"/>
+            <file name="ZUMBI.ELF"  source="bin/zumbi.elf"/>
+            <dir name="ASSETS">
+                <file name="*" source="assets/*"/>
+            </dir>
+        </directory_tree>
+    </track>
+</iso_project>

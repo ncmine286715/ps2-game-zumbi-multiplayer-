@@ -2,6 +2,7 @@
 #include "player.h"
 #include "render.h"
 #include "spatial.h"
+#include "mechanics.h"
 #include "audio.h"
 #include <string.h>
 #include <math.h>
@@ -116,8 +117,11 @@ void zombie_tick(u32 dt_ms)
             if (cx >= 0 && cx < FF_DIM && cz >= 0 && cz < FF_DIM) {
                 fx_t vx = FX_FROM_FLOAT((float)s_flowfield_x[cz][cx] / 127.0f);
                 fx_t vz = FX_FROM_FLOAT((float)s_flowfield_z[cz][cx] / 127.0f);
-                z->vel.x = FX_MUL(vx, FX_FROM_FLOAT(0.07f));
-                z->vel.z = FX_MUL(vz, FX_FROM_FLOAT(0.07f));
+                /* Zumbis correm mais rapido a noite (horda noturna). */
+                fx_t spd = env_is_night() ? FX_FROM_FLOAT(0.11f)
+                                          : FX_FROM_FLOAT(0.07f);
+                z->vel.x = FX_MUL(vx, spd);
+                z->vel.z = FX_MUL(vz, spd);
             }
             fx_t ar2 = FX_MUL(z->attack_radius, z->attack_radius);
             if (best_d2 < ar2) z->state = ZSTATE_ATTACK;
@@ -129,7 +133,9 @@ void zombie_tick(u32 dt_ms)
                 static u32 atk_cd = 0;
                 atk_cd += dt_ms;
                 if (atk_cd >= 800) {
-                    g_players[best].hp -= 8;
+                    /* Mordida: dano + chance de sangramento/infeccao,
+                     * mitigado por armadura (mechanics.c). */
+                    mech_on_bite(&g_players[best], 8);
                     audio_play(SFX_ZOMBIE_GROAN, z->pos.x, z->pos.z);
                     atk_cd = 0;
                 }
