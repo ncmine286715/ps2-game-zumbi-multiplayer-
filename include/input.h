@@ -28,9 +28,16 @@ typedef struct {
     s8   rstick_x, rstick_y;
 } input_state_t;
 
-extern input_state_t g_input;
+extern input_state_t g_input;                       /* pad 0 (compat) */
+extern input_state_t g_inputs[MAX_LOCAL_PLAYERS];   /* co-op local */
 
 void input_boot(void);
 void input_tick(void);
+
+/* Estado de um pad especifico (0..MAX_LOCAL_PLAYERS-1). */
+const input_state_t *input_for_pad(u8 pad);
+
+/* 1 se ha um controle conectado e estavel naquele slot. */
+int  input_pad_connected(u8 pad);
 
 #endif

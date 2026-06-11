@@ -23,6 +23,8 @@
 #include "world.h"
 #include "player.h"
 #include "zombie.h"
+#include "structures.h"
+#include "mechanics.h"
 #include "spatial.h"
 #include "network.h"
 #include "input.h"
@@ -64,13 +66,21 @@ int main(int argc, char **argv)
     world_generate_forest(0xC0FFEE42);
     player_boot();
     zombie_boot();
+    structures_boot();
+    mechanics_boot();
     net_boot(as_host, host_ip);
 
-    /* Spawn inicial: 12 zumbis distribuidos. */
+    /* Co-op local: registra um jogador para cada pad extra conectado
+     * (porta 2 / multitap). Tela compartilhada, camera no player 0. */
+    for (u8 pad = 1; pad < MAX_LOCAL_PLAYERS; ++pad)
+        if (input_pad_connected(pad))
+            player_add_local(pad);
+
+    /* Spawn inicial: 24 zumbis distribuidos pelo mapa maior. */
     if (as_host) {
-        for (int i = 0; i < 12; ++i) {
-            fx_t x = FX_FROM_INT(-64 + (i * 17) % 128);
-            fx_t z = FX_FROM_INT(-64 + (i * 23) % 128);
+        for (int i = 0; i < 24; ++i) {
+            fx_t x = FX_FROM_INT(-128 + (i * 37) % 256);
+            fx_t z = FX_FROM_INT(-128 + (i * 53) % 256);
             zombie_spawn(x, z);
         }
     }
@@ -91,8 +101,10 @@ int main(int argc, char **argv)
         while (acc >= TICK_MS) {
             spatial_reset();
             world_tick(TICK_MS);
+            structures_tick(TICK_MS);
             zombie_tick(TICK_MS);
             player_tick(TICK_MS);
+            mechanics_tick(TICK_MS);
             net_tick(tick);
             acc  -= TICK_MS;
             tick += 1;
@@ -107,6 +119,7 @@ int main(int argc, char **argv)
             player_camera(&view, &proj);
             render_begin(&view, &proj);
             world_render();
+            structures_render();
             zombie_render();
             player_render();
             render_flush();

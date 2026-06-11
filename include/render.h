@@ -34,6 +34,16 @@ typedef enum {
     MDL_ZOMBIE,
     MDL_ROCK,
     MDL_CRATE,
+    /* mapa expandido / novos sistemas */
+    MDL_PALM,            /* bioma praia */
+    MDL_DEAD_TREE,       /* bioma pantano */
+    MDL_BUSH_BERRY,      /* arbusto com frutas */
+    MDL_STRUCTURE,       /* parede/piso/estacao generica */
+    MDL_CAMPFIRE,
+    MDL_ANIMAL,          /* veado/coelho (caca) */
+    MDL_PROJECTILE,      /* flecha/bala/molotov */
+    MDL_LOOT,            /* bau/caixa de loot */
+    MDL_WATER,           /* tile de agua (lago/rio) */
     MDL_COUNT
 } model_id_t;
 

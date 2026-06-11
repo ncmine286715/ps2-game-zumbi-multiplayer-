@@ -36,10 +36,21 @@ typedef struct { float m[16]; }         QALIGN mat4_t;
 typedef u32 quat32_t;
 
 #define MAX_PLAYERS         8
-#define MAX_ZOMBIES         64
-#define MAX_TREES           512
-#define MAX_ITEMS_GROUND    128
-#define MAX_INV_SLOTS       16
+#define MAX_LOCAL_PLAYERS   4      /* co-op local de tela compartilhada */
+#define MAX_ZOMBIES         128    /* hordas maiores no mapa expandido */
+#define MAX_TREES           1024
+#define MAX_ROCKS           256
+#define MAX_ANIMALS         48
+#define MAX_LOOT            96     /* baus/caixas espalhados pelo mundo */
+#define MAX_STRUCTURES      256    /* construcoes colocadas pelos jogadores */
+#define MAX_PROJECTILES     64     /* flechas, balas, molotovs */
+#define MAX_ITEMS_GROUND    256
+#define MAX_INV_SLOTS       24
 #define INV_STACK_MAX       64
+
+/* Mapa expandido: 512 x 512 m (antes 256 x 256). Continua dentro da
+ * cobertura do spatial grid (64 celulas * 8 m = 512 m). */
+#define WORLD_HALF_M        256
+#define WORLD_SIZE_M        (WORLD_HALF_M * 2)
 
 #endif
