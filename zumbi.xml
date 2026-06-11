@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Projeto mkps2iso para gerar a ISO/UDF bootavel do Zumbi Multiplayer.
-  Uso:  mkps2iso zumbi.xml      (gera bin/zumbi.iso)
-  Veja docs/BUILD.md para o passo a passo completo.
+  Descritor da arvore da ISO (referencia / tool baseado em XML).
 
-  A arvore de diretorios abaixo precisa existir na raiz ANTES de gerar:
-    SYSTEM.CNF            (obrigatorio — aponta para o ELF)
-    bin/zumbi.elf         (saida do `make`, copiada como ZUMBI.ELF)
-    assets/              (texturas, modelos, sons)
+  NOTA: o fluxo recomendado e `make iso` (tools/build_iso.sh), que monta um
+  staging validado em build/iso_root/ e chama `mkps2iso build/iso_root
+  bin/zumbi.iso` (modo diretorio). Este XML fica como documentacao da arvore
+  esperada e para tools que consomem descritor XML.
+
+  Arvore esperada na raiz da ISO:
+    SYSTEM.CNF            (obrigatorio — aponta para ZUMBI.ELF, CRLF)
+    ZUMBI.ELF            (saida do `make`: bin/zumbi.elf)
+    ASSETS/              (texturas, modelos, sons)
 -->
 <iso_project image_name="bin/zumbi.iso" volume_name="ZUMBI">
     <track type="data">

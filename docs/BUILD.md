@@ -44,22 +44,28 @@ HDDUNITPOWER = NOCHECK
 
 ## 4. Gerar a ISO
 
-### Opcao A — mkps2iso (recomendado)
+### Opcao A — script automatico (recomendado)
 
-Feito especificamente para homebrew de PS2 (UDF + ISO9660):
+O `tools/build_iso.sh` separa o pipeline em 3 fases: **build** (`make`),
+**staging** (monta `build/iso_root/` com `SYSTEM.CNF`, `ZUMBI.ELF` e
+`ASSETS/` nos nomes exatos que o PS2 espera) e **iso**. Ele valida o ELF
+(magic + alvo MIPS) antes de empacotar e limpa o staging mesmo em erro.
 
 ```sh
-# baixe/instale: https://github.com/N4gtan/mkps2iso
-make iso             # chama tools/build_iso.sh
-# ou direto:
-mkps2iso zumbi.xml   # gera bin/zumbi.iso
+make iso                        # = tools/build_iso.sh --no-build
+tools/build_iso.sh              # build + staging + iso
+tools/build_iso.sh --no-build   # so empacota (ELF ja compilado)
 ```
 
-### Opcao B — script automatico
+Se o `mkps2iso` (https://github.com/N4gtan/mkps2iso) estiver no PATH, ele
+gera UDF+ISO9660 bootavel a partir do staging. Senao, cai para
+`genisoimage`/`mkisofs` com `-iso-level 2 -sysid PLAYSTATION2`.
+
+### Opcao B — mkps2iso direto a partir do staging
 
 ```sh
-tools/build_iso.sh           # make + ISO (usa mkps2iso, ou cai p/ genisoimage)
-tools/build_iso.sh --no-build  # so empacota (ELF ja compilado)
+tools/build_iso.sh --no-build   # garante build/iso_root/
+# (o script ja chama mkps2iso; rode manualmente so se quiser inspecionar)
 ```
 
 ### Opcao C — Windows sem linha de comando (ImgBurn)
@@ -78,11 +84,29 @@ make run                      # PCSX2 via ELF (defina PCSX2= no ambiente)
 
 No console real, grave a ISO ou rode via **OPL** (USB/HDD/SMB).
 
+## Diagnostico de ambiente
+
+Antes de abrir um bug de build, rode:
+
+```sh
+tools/check_env.sh
+```
+
+Ele confere `PS2DEV`/`PS2SDK`/`GSKIT`, integridade do PS2SDK (linkfile,
+libs), a toolchain no PATH e — importante — **flags globais perigosas
+vazadas no ambiente** (ex.: `CFLAGS`/`EE_CFLAGS` exportando `-mlong64`).
+
 ## Solucao de problemas
 
+- **`-mabi=n32 is incompatible with -mlong64`**: a ABI da EE e n32 (long de
+  32 bits). O projeto **nao** usa `-mlong64`. Se o erro voltar, algo no
+  ambiente exporta essa flag — rode `tools/check_env.sh` e faca
+  `unset CFLAGS EE_CFLAGS` (ou remova a flag de scripts de shell).
 - **"Cannot find SYSTEM.CNF"**: o arquivo precisa estar na raiz da ISO e
-  o `BOOT2` apontar para o nome exato do ELF (`ZUMBI.ELF;1`).
+  o `BOOT2` apontar para o nome exato do ELF (`ZUMBI.ELF;1`). O
+  `SYSTEM.CNF` usa quebras de linha **CRLF** (exigido pelo BIOS real).
 - **Tela preta no PCSX2**: confira o `VMODE` (NTSC/PAL) e se o ELF foi
   compilado com o mesmo `PS2SDK` do emulador.
 - **ELF nao linka**: verifique `PS2SDK`/`GSKIT` no ambiente e se todos os
   `.o` (incluindo `structures.o` e `mechanics.o`) foram compilados.
+- **Toolchain antiga (`ee-gcc`)**: rode `make EE_PREFIX=ee-`.
