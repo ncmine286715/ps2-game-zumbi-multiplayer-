@@ -3,6 +3,8 @@
 ; (dois entry points no mesmo microprog, ou microprograma trocado por
 ; UNPACK MPG dependendo do passe).
 
+.syntax dvp_as
+
 .global VU1Lighting_CodeStart
 .global VU1Lighting_CodeEnd
 
