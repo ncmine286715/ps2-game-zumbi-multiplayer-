@@ -1,0 +1,83 @@
+; transform.vsm — microcode VU1 para transform + clip + GIF emit.
+;
+; Layout esperado em VU_MEM:
+;   addr 0    — MVP   (4 qwords, mat4 column-major)
+;   addr 4    — STATE (1 qword: vert_count, tri_count, _, _)
+;   addr 5    — verts (N qwords V4_32 com pos + tex/lum no .w)
+;   addr 5+N  — tris  (M qwords com tres indices empacotados)
+;   addr K    — GIFtag area (assembler escreve aqui antes do XGKICK)
+;
+; Sequencia geral:
+;   1. lq    mvp0..3
+;   2. para cada vertice:
+;        lq      vp, verts(i)
+;        mul     acc, mvp0, vp[x]
+;        madd    acc, mvp1, vp[y]
+;        madd    acc, mvp2, vp[z]
+;        madd    out, mvp3, vp[w]      ; clip-space
+;        div     q, vf00[w], out[w]
+;        mul.xyz out, out, q           ; perspective divide
+;        ; viewport scale/bias
+;        mul     out, out, viewport_scale
+;        add     out, out, viewport_bias
+;        sq      out, vert_out(i)
+;   3. monta GIFtag PRIM=TRIANGLE NREG=ST,RGBAQ,XYZ
+;      e XGKICK em direcao ao GS.
+
+.syntax dvp_as
+
+.global VU1Transform_CodeStart
+.global VU1Transform_CodeEnd
+
+VU1Transform_CodeStart:
+
+    ; --- carrega MVP em vf04..vf07 ---
+    lq      vf04, 0(vi00)
+    lq      vf05, 1(vi00)
+    lq      vf06, 2(vi00)
+    lq      vf07, 3(vi00)
+
+    ; --- carrega contadores ---
+    lq      vf08, 4(vi00)
+    ctc2    vf08x, vi01           ; vi01 = vert_count
+
+    iaddiu  vi02, vi00, 5         ; vi02 = ptr para verts
+    iaddiu  vi03, vi00, 0x100     ; vi03 = ptr para vert_out (scratch)
+
+vtx_loop:
+    lq      vf16, 0(vi02)         ; vp
+
+    mulax.xyzw   acc,  vf04, vf16x
+    madday.xyzw  acc,  vf05, vf16y
+    maddaz.xyzw  acc,  vf06, vf16z
+    maddw.xyzw   vf17, vf07, vf16w   ; vf17 = clip pos
+
+    div     q,    vf00w, vf17w
+    mulq.xyz vf17, vf17, q
+
+    ; viewport: 256, 224, 0, 1
+    ; aplica scale/bias (constantes ja em vf02/vf03 carregadas pelo loader)
+    mul     vf17, vf17, vf02
+    add     vf17, vf17, vf03
+
+    sq      vf17, 0(vi03)
+
+    iaddiu  vi02, vi02, 1
+    iaddiu  vi03, vi03, 1
+    isubiu  vi01, vi01, 1
+    ibne    vi01, vi00, vtx_loop
+    nop
+
+    ; --- monta GIFtag PRIM=TRIANGLE, NREG=3 (RGBAQ, ST, XYZ2) ---
+    ; (em codigo real: prepara GIFtag em vf, sq nas posicoes finais,
+    ; entao XGKICK)
+
+    xgkick  vi00
+    nop
+
+    ; --- termina micro program ---
+    nop
+    nop[e]
+    nop
+
+VU1Transform_CodeEnd:

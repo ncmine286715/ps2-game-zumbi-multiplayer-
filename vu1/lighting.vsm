@@ -1,0 +1,43 @@
+; lighting.vsm — iluminacao por vertex (lambert direcional) executada
+; em paralelo com transform. Pode ser chamada via MSCAL apos transform
+; (dois entry points no mesmo microprog, ou microprograma trocado por
+; UNPACK MPG dependendo do passe).
+
+.global VU1Lighting_CodeStart
+.global VU1Lighting_CodeEnd
+
+VU1Lighting_CodeStart:
+
+    ; vf08 = direcao da luz (em world space, normalizada)
+    ; vf09 = cor ambiente RGBA
+    ; vf10 = cor difusa RGBA
+    ; verts entram com normal em .xyz e cor base em .w (paleta)
+
+    iaddiu  vi02, vi00, 5        ; ptr verts
+    ctc2    vf08x, vi01           ; vert_count
+
+light_loop:
+    lq      vf16, 0(vi02)         ; normal
+
+    ; dot(N, L) clamp >= 0
+    mul     vf18, vf16, vf08
+    addy.x  vf18, vf18, vf18
+    addz.x  vf18, vf18, vf18
+    max.x   vf18, vf18, vf00      ; clamp [0..]
+
+    ; cor = ambient + diffuse * dot
+    mulax.xyzw  acc, vf10, vf18x
+    madd.xyzw   vf19, vf09, vf00w  ; +ambient
+
+    sq      vf19, 0(vi02)         ; sobrescreve canal RGBA in-place
+
+    iaddiu  vi02, vi02, 1
+    isubiu  vi01, vi01, 1
+    ibne    vi01, vi00, light_loop
+    nop
+
+    nop
+    nop[e]
+    nop
+
+VU1Lighting_CodeEnd:
